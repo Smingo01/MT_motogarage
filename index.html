@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTO GARAGE | BigBike Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0a0a0a; color: white; }
+        .bg-dark-card { background-color: #1a1a1a; border: 1px solid #333; }
+        .line-gradient { background: linear-gradient(90deg, #ff0000 0%, #0066ff 100%); height: 4px; }
+        .page-content.hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="bg-black/90 sticky top-0 z-50 border-b border-gray-800 backdrop-blur-md">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4 cursor-pointer" onclick="showPage('home')">
+                <img src="img/logo.png" alt="MOTO GARAGE" class="h-10 w-auto"> 
+                <h1 class="text-xl font-bold hidden md:block uppercase text-white">MOTO <span class="text-red-600">GARAGE</span></h1>
+            </div>
+            <div class="flex items-center space-x-6 text-sm font-medium">
+                <button onclick="showPage('home')" class="hover:text-red-500 transition">หน้าแรก</button>
+                <button onclick="showPage('inventory')" class="hover:text-red-500 transition">รถในสต็อก</button>
+                <button onclick="showPage('calc')" class="hover:text-red-500 transition">คำนวณเงินผ่อน</button>
+                <button onclick="openLogin()" id="loginBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full transition">Login</button>
+            </div>
+        </div>
+        <div class="line-gradient"></div>
+    </nav>
+
+    <section id="page-home" class="page-content min-h-[80vh] flex items-center justify-center relative">
+        <div class="absolute inset-0 z-0">
+            <img src="img/00.jpg" class="w-full h-full object-cover opacity-30 shadow-inner">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent"></div>
+        </div>
+        <div class="relative z-10 text-center px-4">
+            <h2 class="text-5xl md:text-7xl font-black mb-4 italic uppercase tracking-tighter">Premium <span class="text-red-600">Bigbike</span> Selection</h2>
+            <p class="text-gray-400 text-lg md:text-xl mb-8 max-w-2xl mx-auto">MOTO GARAGE: บิ๊กไบค์มือสองคุณภาพ คัดสรรสภาพนางฟ้าเพื่อนักบิดตัวจริง</p>
+            <button onclick="showPage('inventory')" class="bg-red-600 hover:bg-blue-600 text-white px-10 py-4 rounded-full font-bold text-lg transition shadow-[0_0_20px_rgba(255,0,0,0.5)]">ชมรถทั้งหมด</button>
+        </div>
+    </section>
+
+    <section id="page-inventory" class="page-content hidden container mx-auto px-6 py-16">
+        <div class="flex items-center gap-4 mb-12 border-l-4 border-red-600 pl-4">
+            <h2 class="text-4xl font-bold italic uppercase text-white">Garage <span class="text-blue-500 font-light">Stock</span></h2>
+        </div>
+        <div id="bike-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            </div>
+    </section>
+
+    <section id="page-calc" class="page-content hidden container mx-auto px-6 py-20 text-white">
+        <div class="max-w-4xl mx-auto bg-dark-card rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-gray-800">
+            <div class="p-10 md:w-1/2 border-r border-gray-800 bg-black/30">
+                <h3 class="text-2xl font-bold mb-6 text-blue-500 italic uppercase">Loan Calculator</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-gray-400 text-sm">ราคารถ (บาท)</label>
+                        <input type="number" id="c_price" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-red-600" value="500000">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">เงินดาวน์ (%)</label>
+                        <input type="number" id="c_down" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-blue-600" value="15">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">อัตราดอกเบี้ย (% ต่อปี)</label>
+                        <input type="number" id="c_rate" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-red-600" value="5">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">จำนวนงวด (เดือน)</label>
+                        <select id="c_months" onchange="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none">
+                            <option value="36">36 งวด</option>
+                            <option value="48" selected>48 งวด</option>
+                            <option value="60">60 งวด</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="p-10 md:w-1/2 flex flex-col justify-center items-center bg-black/60 text-center">
+                <p class="text-gray-500 uppercase text-xs tracking-widest mb-2">ยอดผ่อนต่อเดือนประมาณ</p>
+                <div id="calc-result" class="text-6xl font-black text-white mb-6 tracking-tighter">฿0</div>
+                <div class="w-full space-y-2 text-sm text-gray-400 border-t border-gray-800 pt-6">
+                    <p class="flex justify-between"><span>ยอดจัด:</span> <span id="finance-amount" class="text-white">฿0</span></p>
+                    <p class="flex justify-between"><span>ดอกเบี้ยทั้งหมด:</span> <span id="total-interest" class="text-yellow-500">฿0</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="loginModal" class="fixed inset-0 bg-black/90 hidden justify-center items-center z-[9999] backdrop-blur-sm">
+        <div class="bg-dark-card p-8 rounded-2xl w-80 text-center border border-gray-700 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Admin Access</h3>
+            <input id="email" type="email" placeholder="Email" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 mb-4 outline-none text-white focus:border-red-600">
+            <input id="password" type="password" placeholder="Password" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 mb-6 outline-none text-white focus:border-red-600">
+            <button onclick="login()" class="w-full bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition mb-4">เข้าสู่ระบบ</button>
+            <button onclick="closeLogin()" class="text-gray-500 hover:text-white transition text-sm">ยกเลิก</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG (ต้องเปลี่ยนเป็นของคุณจริง!) ---
+        const ADMIN_EMAIL = "name2015za@gmail.com";
+        const SB_URL = "https://hnepbmkiibeiwinxjpwj.supabase.co";
+        const SB_KEY = "sb_publishable_1MesXNX8mMgwhCyboN2Qlw_HU6M3gFM";
+
+        const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+
+        // --- 2. ฟังก์ชันแสดงหน้า ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-' + pageId).classList.remove('hidden');
+            if(pageId === 'inventory') fetchBikes();
+            if(pageId === 'calc') calculateLoan();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function contactLine(bikeName) {
+    const lineID = "0910078100"; // 🔴 เปลี่ยนเป็น LINE ID หรือ Link ของคุณ
+    const currentUrl = window.location.href;
+    
+    // ข้อความที่อยากให้ลูกค้าส่งมาหาเรา (แก้ไขได้)
+    const text = `สวัสดีครับ สนใจรถรุ่น: ${bikeName}\nจากหน้าเว็บ: ${currentUrl}`;
+    
+    // เข้ารหัสข้อความเพื่อให้ส่งผ่าน URL ได้
+    const encodedText = encodeURIComponent(text);
+    
+    // ส่งลูกค้าไปยังแอป LINE
+    // ถ้าใช้ Line Official Account ให้ใช้: https://line.me/R/ti/p/0910078100
+    window.open(`https://line.me/R/oaMessage/${lineID}/?${encodedText}`, '_blank');
+}
+
+        // --- 3. คำนวณเงินผ่อน ---
+        function calculateLoan() {
+            const price = Number(document.getElementById('c_price').value) || 0;
+            const downP = Number(document.getElementById('c_down').value) || 0;
+            const rate = Number(document.getElementById('c_rate').value) || 0;
+            const months = Number(document.getElementById('c_months').value) || 48;
+
+            const finance = price - (price * (downP / 100));
+            const interest = finance * (rate / 100) * (months / 12);
+            const monthly = (finance + interest) / months;
+
+            document.getElementById('calc-result').innerText = '฿' + Math.round(monthly).toLocaleString();
+            document.getElementById('finance-amount').innerText = '฿' + Math.round(finance).toLocaleString();
+            document.getElementById('total-interest').innerText = '฿' + Math.round(interest).toLocaleString();
+        }
+
+        // --- 4. ดึงข้อมูลรถจาก Supabase ---
+        async function fetchBikes() {
+            const list = document.getElementById('bike-list');
+            list.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500 italic">กำลังโหลดข้อมูลรถล่าสุด...</p>';
+
+            const { data, error } = await supabaseClient.from('bikes').select('*').order('created_at', { ascending: false });
+
+            if (error || !data || data.length === 0) {
+                list.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400 italic">ไม่พบข้อมูลรถในสต็อกขณะนี้</p>';
+                return;
+            }
+
+            list.innerHTML = data.map(bike => `
+                <div class="bg-dark-card rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600 transition duration-300 group">
+                    <div class="h-64 overflow-hidden">
+                        <img src="${bike.image_url || 'https://via.placeholder.com/600x400'}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                    </div>
+                    <div class="p-6">
+                        <span class="text-blue-500 text-xs font-bold uppercase tracking-widest">${bike.brand || 'Premium'}</span>
+                        <h3 class="text-2xl font-bold mt-1 text-white">${bike.name}</h3>
+                        <p class="text-gray-400 text-sm mt-3 line-clamp-2">${bike.description || 'สภาพสวย พร้อมใช้งาน'}</p>
+                        <div class="flex justify-between items-center mt-6">
+                            <span class="text-2xl font-black text-red-600 italic">฿${Number(bike.price).toLocaleString()}</span>
+                            <a href="https://line.me/ti/p/~0910078100" target="_blank" class="bg-white text-black px-4 py-2 rounded-lg font-bold text-xs hover:bg-red-600 hover:text-white transition">จองด่วน</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- 5. ระบบ LOGIN ---
+        function openLogin() { document.getElementById("loginModal").style.display = "flex"; }
+        function closeLogin() { document.getElementById("loginModal").style.display = "none"; }
+        
+        async function login() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) alert("ล้มเหลว: " + error.message);
+            else if (data.user.email === ADMIN_EMAIL) window.location.href = "admin.html";
+            else alert("ยินดีต้อนรับ " + data.user.email);
+        }
+
+        async function login() {
+    const emailInput = document.getElementById("email").value.trim();
+    const passwordInput = document.getElementById("password").value;
+
+    if (!emailInput || !passwordInput) {
+        alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+        return;
+    }
+
+    // ทำการตรวจสอบกับระบบ Supabase
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+        email: emailInput, 
+        password: passwordInput 
+    });
+
+    if (error) {
+        alert("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
+        return;
+    }
+
+    // ถ้า Login สำเร็จ เช็คว่าใช่อีเมลแอดมินที่ตั้งไว้หรือไม่
+    if (data.user && data.user.email === ADMIN_EMAIL) {
+        alert("ยินดีต้อนรับคุณแอดมิน!");
+        window.location.href = "admin.html";
+    } else {
+        alert("ยินดีต้อนรับคุณ " + data.user.email + " (เข้าถึงหน้าแอดมินไม่ได้)");
+        closeLogin();
+    }
+}
+
+        // เริ่มต้นคำนวณราคาเริ่มต้น
+        calculateLoan();
+
+       
+ ฟังก์ชันดึงข้อมูลรถมาโชว์ที่หน้าแรก
+async function fetchInventory() {
+    const listContainer = document.getElementById('bike-list');
+    if (!listContainer) return;
+
+    const { data: bikes, error } = await supabaseClient
+        .from('bikes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching bikes:", error);
+        return;
+    }
+
+    listContainer.innerHTML = bikes.map(bike => `
+        <div class="bg-dark-card rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600 transition duration-500 group">
+            <div class="relative overflow-hidden">
+                <img src="${bike.image_url}" class="w-full h-64 object-cover group-hover:scale-110 transition duration-500">
+                <div class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">
+                    Available
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-xl font-bold uppercase italic">${bike.name}</h3>
+                    <span class="text-gray-500 text-xs">${bike.brand || ''}</span>
+                </div>
+                <div class="flex gap-4 mb-4 text-xs text-gray-400">
+                    <span><i class="fas fa-engine"></i> ${bike.cc || '-'} CC</span>
+                    <span><i class="fas fa-calendar"></i> Mint Condition</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-gray-800 pt-4">
+                    <p class="text-2xl font-black text-red-600">฿${Number(bike.price).toLocaleString()}</p>
+                    <button onclick="scrollToCalc(${bike.price})" class="bg-white text-black text-[10px] font-bold px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition">
+                        คำนวณผ่อน
+                        // เพิ่มปุ่มนี้เข้าไปในส่วนที่สร้าง HTML ของ Card รถ
+                    <button onclick="contactLine('${bike.name}')" class="w-full mt-2 bg-[#00B900] hover:bg-[#009900] text-white text-[10px] font-bold py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fab fa-line text-sm"></i> สอบถามผ่าน LINE
+                    </button>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 3. ฟังก์ชันส่งค่าไปที่เครื่องคำนวณเงินผ่อน
+function scrollToCalc(price) {
+    const priceInput = document.getElementById('c_price');
+    const calcSection = document.getElementById('page-calc');
+    
+    if (priceInput) {
+        priceInput.value = price;
+        // เรียกฟังก์ชันคำนวณใหม่เพื่อให้ยอดเงินอัปเดตทันที
+        if (typeof calculateLoan === "function") calculateLoan();
+    }
+    
+    // เลื่อนหน้าจอไปที่ส่วนคำนวณ
+    calcSection.classList.remove('hidden');
+    calcSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// เรียกใช้งานเมื่อโหลดหน้าเว็บ
+document.addEventListener('DOMContentLoaded', () => {
+    fetchInventory();
+});
+
+    </script>
+    <script src="app.js"></script>
+
+    
+</body>
+</html>

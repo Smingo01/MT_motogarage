@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADMIN | MOTO GARAGE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0a0a0a; color: white; }
+        .bg-dark-card { background-color: #161616; border: 1px solid #262626; }
+        input:focus, textarea:focus { border-color: #dc2626 !important; box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.2); }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-end mb-10 border-l-4 border-red-600 pl-4">
+            <div>
+                <h1 class="text-3xl font-bold uppercase tracking-tighter">Admin <span class="text-red-600">Garage</span></h1>
+                <p class="text-gray-500 text-xs mt-1">จัดการสต็อกและอัปโหลดรูปภาพ</p>
+            </div>
+            <button onclick="logout()" class="text-gray-500 hover:text-white text-sm transition italic underline">Logout</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <div class="lg:col-span-1">
+                <div class="bg-dark-card p-6 rounded-2xl shadow-2xl sticky top-5">
+                    <h2 id="form-title" class="text-lg font-bold mb-6 flex items-center gap-2">
+                        <span id="indicator" class="w-1.5 h-5 bg-red-600 transition-all"></span> 
+                        <span id="title-text">เพิ่มรถเข้าสต็อก</span>
+                    </h2>
+                    
+                    <div class="space-y-4" id="bike-form">
+                        <input type="hidden" id="edit-id">
+                        <input type="hidden" id="current_image_url">
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 ml-1 uppercase">ชื่อรุ่นรถ *</label>
+                            <input type="text" id="name" placeholder="เช่น Ducati Panigale V4" class="w-full bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none transition">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] text-gray-500 ml-1 uppercase">ยี่ห้อ/ปี</label>
+                                <input type="text" id="brand" placeholder="Y.2023" class="w-full bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none transition">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-500 ml-1 uppercase">CC</label>
+                                <input type="number" id="cc" placeholder="1103" class="w-full bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 ml-1 uppercase">ราคาขาย (บาท) *</label>
+                            <input type="number" id="price" placeholder="990000" class="w-full bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none transition text-red-500 font-bold">
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 ml-1 uppercase">อัปโหลดรูปภาพ</label>
+                            <input type="file" id="image_file" accept="image/*" class="w-full bg-black/50 border border-gray-800 rounded-lg p-2 text-[10px] text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:bg-red-600 file:text-white cursor-pointer">
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] text-gray-500 ml-1 uppercase">รายละเอียด/ตำหนิ</label>
+                            <textarea id="description" rows="3" placeholder="ระบุรายละเอียดเพิ่มเติม..." class="w-full bg-black/50 border border-gray-800 rounded-lg p-3 text-sm outline-none transition"></textarea>
+                        </div>
+                        
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="saveBike()" id="btn-save" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-red-900/20 uppercase text-xs tracking-wider">บันทึกข้อมูล</button>
+                            <button onclick="resetForm()" id="btn-cancel" class="hidden bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition text-[10px] uppercase">ยกเลิก</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2">
+                <div class="bg-dark-card p-6 rounded-2xl shadow-xl min-h-[500px]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold uppercase tracking-widest">Inventory List</h2>
+                        <span id="bike-count" class="text-[10px] bg-red-600/10 text-red-500 px-3 py-1 rounded-full border border-red-600/20">0 คัน ในสต็อก</span>
+                    </div>
+                    <div id="admin-bike-list" class="grid grid-cols-1 gap-4">
+                        <div class="text-center py-20">
+                            <div class="animate-spin inline-block w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full mb-2"></div>
+                            <p class="text-gray-600 text-xs italic">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // ตรวจสอบสถานะการ Login ทันทีที่เปิดหน้า
+async function checkAuth() {
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+        alert("กรุณาเข้าสู่ระบบก่อนเข้าใช้งานหน้า Admin");
+        window.location.href = "index.html"; // หรือหน้า login ของคุณ
+    }
+}
+checkAuth();
+
+       // --- 1. CONFIG: ประกาศครั้งเดียว ห้ามประกาศซ้ำ (แก้ Error: Already Declared) ---
+const SB_URL = "https://hnepbmkiibeiwinxjpwj.supabase.co"; 
+const SB_KEY = "sb_publishable_1MesXNX8mMgwhCyboN2Qlw_HU6M3gFM"; 
+const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY); // ใช้ชื่อ supabaseClient เพื่อเลี่ยงการซ้ำ
+
+// --- 2. ฟังก์ชันดึงข้อมูล (ที่จะทำให้วงเวียนหายไปแล้วโชว์รายการรถ) ---
+async function loadBikes() {
+    const listContainer = document.getElementById('admin-bike-list');
+    // ดึงข้อมูลจาก Table 'bikes'
+    const { data: bikes, error } = await supabaseClient
+        .from('bikes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Fetch Error:", error);
+        listContainer.innerHTML = `<p class="text-red-500 text-center py-10">โหลดข้อมูลไม่สำเร็จ: ${error.message}</p>`;
+        return;
+    }
+    
+    // อัปเดตจำนวนรถ
+    document.getElementById('bike-count').innerText = `${bikes.length} คัน ในสต็อก`;
+    
+    // ถ้าไม่มีข้อมูล
+    if (bikes.length === 0) {
+        listContainer.innerHTML = '<p class="text-center text-gray-600 py-20 italic">ยังไม่มีรถในสต็อก</p>';
+        return;
+    }
+
+    // สร้างรายการรถ (Inventory List)
+    listContainer.innerHTML = bikes.map(bike => `
+        <div class="flex items-center gap-4 bg-black/40 p-4 rounded-xl border border-gray-800 hover:border-red-600/30 transition group shadow-lg">
+            <div class="relative w-24 h-24 overflow-hidden rounded-lg border border-gray-800">
+                <img src="${bike.image_url}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+            </div>
+            <div class="flex-1">
+                <h4 class="font-bold text-sm text-white uppercase italic">${bike.name}</h4>
+                <p class="text-red-600 text-lg font-black">฿${Number(bike.price).toLocaleString()}</p>
+                <div class="flex gap-2 mt-1">
+                    <span class="text-[9px] bg-gray-900 text-gray-500 px-2 py-0.5 rounded border border-gray-800">${bike.brand || '-'}</span>
+                    <span class="text-[9px] bg-gray-900 text-gray-500 px-2 py-0.5 rounded border border-gray-800">${bike.cc || '-'} CC</span>
+                </div>
+            </div>
+            <div class="flex flex-col gap-2">
+                <button onclick="editBike('${bike.id}')" class="text-[10px] bg-blue-600/10 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 hover:text-white transition font-bold uppercase">Edit</button>
+                <button onclick="deleteBike('${bike.id}')" class="text-[10px] bg-red-600/10 text-red-500 px-4 py-2 rounded-lg hover:bg-red-600 hover:text-white transition font-bold uppercase">Del</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// --- 3. ฟังก์ชันบันทึกข้อมูล (saveBike) ---
+async function saveBike() {
+    const btn = document.getElementById('btn-save');
+    const id = document.getElementById('edit-id').value;
+    const fileInput = document.getElementById('image_file');
+    
+    const name = document.getElementById('name').value.trim();
+    const price = document.getElementById('price').value;
+
+    if(!name || !price) {
+        alert("กรุณาใส่ชื่อรุ่นและราคาขาย!");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึก...";
+
+    try {
+        let imageUrl = document.getElementById('current_image_url').value;
+
+        // ถ้ามีการอัปโหลดไฟล์ใหม่
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const fileName = `${Date.now()}_${file.name}`;
+            
+            const { data: upData, error: upError } = await supabaseClient.storage
+                .from('bike-images')
+                .upload(fileName, file);
+
+            if (upError) throw upError;
+
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('bike-images')
+                .getPublicUrl(fileName);
+                
+            imageUrl = publicUrl;
+        }
+
+        if (!imageUrl) throw new Error("กรุณาอัปโหลดรูปภาพรถด้วยครับ");
+
+        const bikeData = {
+            name,
+            brand: document.getElementById('brand').value.trim(),
+            cc: parseInt(document.getElementById('cc').value) || 0,
+            price: parseFloat(price),
+            description: document.getElementById('description').value.trim(),
+            image_url: imageUrl
+        };
+
+        const { error } = id 
+            ? await supabaseClient.from('bikes').update(bikeData).eq('id', id)
+            : await supabaseClient.from('bikes').insert([bikeData]);
+
+        if (error) throw error;
+        
+        alert("สำเร็จ! ✨");
+        resetForm();
+        loadBikes();
+    } catch (err) {
+        alert("เกิดข้อผิดพลาด: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = id ? "อัปเดตข้อมูล" : "บันทึกข้อมูล";
+    }
+}
+
+// --- 4. ฟังก์ชันเสริม (Edit, Delete, Logout) ---
+async function editBike(id) {
+    const { data: bike } = await supabaseClient.from('bikes').select('*').eq('id', id).single();
+    if (!bike) return;
+
+    document.getElementById('edit-id').value = bike.id;
+    document.getElementById('name').value = bike.name;
+    document.getElementById('brand').value = bike.brand;
+    document.getElementById('cc').value = bike.cc;
+    document.getElementById('price').value = bike.price;
+    document.getElementById('description').value = bike.description;
+    document.getElementById('current_image_url').value = bike.image_url;
+    
+    document.getElementById('title-text').innerText = "แก้ไขข้อมูลรถ";
+    document.getElementById('btn-save').innerText = "อัปเดตข้อมูล";
+    document.getElementById('btn-cancel').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetForm() {
+    document.getElementById('edit-id').value = '';
+    document.getElementById('current_image_url').value = '';
+    document.getElementById('image_file').value = '';
+    document.querySelectorAll('#bike-form input, #bike-form textarea').forEach(el => {
+        if(el.type !== 'hidden') el.value = '';
+    });
+    document.getElementById('title-text').innerText = "เพิ่มรถเข้าสต็อก";
+    document.getElementById('btn-save').innerText = "บันทึกข้อมูล";
+    document.getElementById('btn-cancel').classList.add('hidden');
+}
+
+async function deleteBike(id) {
+    if (!confirm("ลบรายการนี้ใช่ไหม?")) return;
+    await supabaseClient.from('bikes').delete().eq('id', id);
+    loadBikes();
+}
+
+async function logout() {
+    await supabaseClient.auth.signOut();
+    window.location.href = "index.html";
+}
+
+// --- เริ่มทำงานครั้งแรก ---
+loadBikes();
+    </script>
+</body>
+</html>
