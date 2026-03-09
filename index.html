@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: 'unsafe-inline' 'unsafe-eval'; script-src 'self' https: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https:; style-src 'self' https: 'unsafe-inline'; font-src 'self' https: data:; img-src 'self' https: data:;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOTO GARAGE | BigBike Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #0a0a0a; color: white; }
+        .bg-dark-card { background-color: #1a1a1a; border: 1px solid #333; }
+        .line-gradient { background: linear-gradient(90deg, #ff0000 0%, #0066ff 100%); height: 4px; }
+        .page-content.hidden { display: none; }
+        
+        /* สไตล์เพิ่มเติมสำหรับ Gallery Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #000; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #dc2626; }
+    </style>
+</head>
+<body>
+
+    <nav class="bg-black/90 sticky top-0 z-50 border-b border-gray-800 backdrop-blur-md">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4 cursor-pointer" onclick="showPage('home')">
+                <img src="img/logo.png" alt="MOTO GARAGE" class="h-10 w-auto"> 
+                <h1 class="text-xl font-bold hidden md:block uppercase text-white">MOTO <span class="text-red-600">GARAGE</span></h1>
+            </div>
+            <div class="flex items-center space-x-6 text-sm font-medium">
+                <button onclick="showPage('home')" class="hover:text-red-500 transition">หน้าแรก</button>
+                <button onclick="showPage('inventory')" class="hover:text-red-500 transition">รถในสต็อก</button>
+                <button onclick="showPage('calc')" class="hover:text-red-500 transition">คำนวณเงินผ่อน</button>
+                <button onclick="openLogin()" id="loginBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full transition">Login</button>
+            </div>
+        </div>
+        <div class="line-gradient"></div>
+    </nav>
+
+    <section id="page-home" class="page-content min-h-[80vh] flex items-center justify-center relative">
+        <div class="absolute inset-0 z-0">
+            <img src="img/00.jpg" class="w-full h-full object-cover opacity-30 shadow-inner">
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent"></div>
+        </div>
+        <div class="relative z-10 text-center px-4">
+            <h2 class="text-5xl md:text-7xl font-black mb-4 italic uppercase tracking-tighter">Premium <span class="text-red-600">Bigbike</span> Selection</h2>
+            <p class="text-gray-400 text-lg md:text-xl mb-8 max-w-2xl mx-auto">MOTO GARAGE: บิ๊กไบค์มือสองคุณภาพ คัดสรรสภาพนางฟ้าเพื่อนักบิดตัวจริง</p>
+            <button onclick="showPage('inventory')" class="bg-red-600 hover:bg-blue-600 text-white px-10 py-4 rounded-full font-bold text-lg transition shadow-[0_0_20px_rgba(255,0,0,0.5)]">ชมรถทั้งหมด</button>
+        </div>
+    </section>
+
+    <section id="page-inventory" class="page-content hidden container mx-auto px-6 py-16">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+            <div class="border-l-4 border-red-600 pl-4">
+                <h2 class="text-4xl font-bold italic uppercase text-white">Garage <span class="text-blue-500 font-light">Stock</span></h2>
+            </div>
+            
+            <div class="relative w-full md:w-96">
+                <input type="text" id="search-input" oninput="filterBikes()" 
+                    placeholder="ค้นหาชื่อรุ่น หรือ ยี่ห้อ..." 
+                    class="w-full bg-dark-card border border-gray-700 rounded-full py-3 px-6 pl-12 outline-none focus:border-red-600 transition text-white">
+                <svg class="w-5 h-5 text-gray-500 absolute left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <div id="bike-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+    </section>
+
+    <section id="page-calc" class="page-content hidden container mx-auto px-6 py-20 text-white">
+        <div class="max-w-4xl mx-auto bg-dark-card rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-gray-800">
+            <div class="p-10 md:w-1/2 border-r border-gray-800 bg-black/30">
+                <h3 class="text-2xl font-bold mb-6 text-blue-500 italic uppercase">Loan Calculator</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-gray-400 text-sm">ราคารถ (บาท)</label>
+                        <input type="number" id="c_price" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-red-600" value="500000">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">เงินดาวน์ (%)</label>
+                        <input type="number" id="c_down" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-blue-600" value="15">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">อัตราดอกเบี้ย (% ต่อปี)</label>
+                        <input type="number" id="c_rate" oninput="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none focus:border-red-600" value="5">
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-sm">จำนวนงวด (เดือน)</label>
+                        <select id="c_months" onchange="calculateLoan()" class="w-full bg-black border border-gray-700 rounded-xl p-3 text-xl font-bold outline-none">
+                            <option value="36">36 งวด</option>
+                            <option value="48" selected>48 งวด</option>
+                            <option value="60">60 งวด</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="p-10 md:w-1/2 flex flex-col justify-center items-center bg-black/60 text-center">
+                <p class="text-gray-500 uppercase text-xs tracking-widest mb-2">ยอดผ่อนต่อเดือนประมาณ</p>
+                <div id="calc-result" class="text-6xl font-black text-white mb-6 tracking-tighter">฿0</div>
+                <div class="w-full space-y-2 text-sm text-gray-400 border-t border-gray-800 pt-6">
+                    <p class="flex justify-between"><span>ยอดจัด:</span> <span id="finance-amount" class="text-white">฿0</span></p>
+                    <p class="flex justify-between"><span>ดอกเบี้ยทั้งหมด:</span> <span id="total-interest" class="text-yellow-500">฿0</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="loginModal" class="fixed inset-0 bg-black/90 hidden justify-center items-center z-[9999] backdrop-blur-sm">
+        <div class="bg-dark-card p-8 rounded-2xl w-80 text-center border border-gray-700 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Admin Access</h3>
+            <input id="email" type="email" placeholder="Email" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 mb-4 outline-none text-white focus:border-red-600">
+            <input id="password" type="password" placeholder="Password" class="w-full bg-black border border-gray-700 rounded-lg p-2.5 mb-6 outline-none text-white focus:border-red-600">
+            <button onclick="login()" class="w-full bg-red-600 text-white py-3 rounded-full font-bold hover:bg-red-700 transition mb-4">เข้าสู่ระบบ</button>
+            <button onclick="closeLogin()" class="text-gray-500 hover:text-white transition text-sm">ยกเลิก</button>
+        </div>
+    </div>
+
+    <div id="bike-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
+        <div class="bg-dark-card max-w-5xl w-full max-h-[90vh] overflow-y-auto rounded-3xl border border-gray-800 shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white z-10 text-2xl transition-transform hover:scale-125">&times;</button>
+            <div class="grid grid-cols-1 md:grid-cols-2">
+                <div class="flex flex-col bg-black/20 p-6 border-r border-gray-800">
+                    <div class="relative aspect-[4/3] mb-4 overflow-hidden rounded-2xl border border-gray-800 bg-black shadow-inner">
+                        <img id="modal-img" src="" class="w-full h-full object-cover transition-opacity duration-300">
+                    </div>
+                    <div id="modal-thumbnails" class="grid grid-cols-4 gap-2 overflow-x-auto pb-2 custom-scrollbar"></div>
+                </div>
+                <div class="p-8">
+                    <div id="modal-status" class="mb-2"></div>
+                    <h2 id="modal-name" class="text-3xl font-bold uppercase italic tracking-tighter text-white mb-2"></h2>
+                    <p id="modal-price" class="text-3xl font-black text-red-600 mb-6"></p>
+                    <div class="grid grid-cols-2 gap-4 mb-8 border-y border-gray-800 py-4">
+                        <div><p class="text-[10px] text-gray-500 uppercase">ยี่ห้อ/ปี</p><p id="modal-brand" class="font-bold text-sm text-white"></p></div>
+                        <div><p class="text-[10px] text-gray-500 uppercase">เครื่องยนต์</p><p id="modal-cc" class="font-bold text-sm text-white"></p></div>
+                    </div>
+                    <div class="mb-8">
+                        <p class="text-[10px] text-gray-500 uppercase mb-2">รายละเอียดสเปกและของแต่ง</p>
+                        <p id="modal-desc" class="text-gray-300 text-sm leading-relaxed whitespace-pre-line bg-black/20 p-4 rounded-xl"></p>
+                    </div>
+                    <button id="modal-line-btn" class="w-full bg-[#00B900] text-white font-bold py-3 rounded-xl hover:bg-[#009900] transition flex items-center justify-center gap-2 uppercase text-xs">สอบถามคันนี้ผ่าน LINE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. CONFIG ---
+        const SB_URL = "https://hnepbmkiibeiwinxjpwj.supabase.co";
+        const SB_KEY = "sb_publishable_1MesXNX8mMgwhCyboN2Qlw_HU6M3gFM";
+        const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        
+        // --- GLOBAL STATE ---
+        let allBikes = []; 
+
+        // --- 2. NAVIGATION ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));
+            const targetPage = document.getElementById('page-' + pageId);
+            if (targetPage) targetPage.classList.remove('hidden');
+            
+            if(pageId === 'inventory') fetchInventory();
+            if(pageId === 'calc') calculateLoan();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openLogin() { document.getElementById('loginModal').classList.remove('hidden'); }
+        function closeLogin() { document.getElementById('loginModal').classList.add('hidden'); }
+
+        // --- 3. INVENTORY & SEARCH LOGIC ---
+        async function fetchInventory() {
+            const listContainer = document.getElementById('bike-list');
+            if (!listContainer) return;
+            
+            listContainer.innerHTML = '<p class="col-span-full text-center py-20 text-gray-500 italic">กำลังโหลดข้อมูลรถล่าสุด...</p>';
+
+            const { data: bikes, error } = await supabaseClient
+                .from('bikes')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error || !bikes || bikes.length === 0) {
+                listContainer.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400 italic">ไม่พบข้อมูลรถในสต็อกขณะนี้</p>';
+                return;
+            }
+
+            allBikes = bikes; 
+            renderBikes(allBikes);
+        }
+
+        function filterBikes() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allBikes.filter(bike => 
+                bike.name.toLowerCase().includes(searchTerm) || 
+                (bike.brand && bike.brand.toLowerCase().includes(searchTerm))
+            );
+            renderBikes(filtered);
+        }
+
+        function renderBikes(bikes) {
+            const listContainer = document.getElementById('bike-list');
+            if (bikes.length === 0) {
+                listContainer.innerHTML = '<p class="col-span-full text-center py-20 text-gray-400">ไม่พบรถที่คุณค้นหา</p>';
+                return;
+            }
+
+            listContainer.innerHTML = bikes.map(bike => {
+                const isSold = bike.is_sold === true;
+                return `
+                <div class="bg-dark-card rounded-2xl overflow-hidden border border-gray-800 hover:border-red-600 transition duration-500 group relative">
+                    ${isSold ? `<div class="absolute inset-0 z-20 bg-black/60 flex items-center justify-center"><span class="border-4 border-red-600 text-red-600 font-black text-4xl px-4 py-2 rotate-[-15deg] uppercase">SOLD OUT</span></div>` : ''}
+                    <div class="relative overflow-hidden cursor-pointer" onclick="openBikeDetail('${bike.id}')">
+                        <img src="${bike.image_url}" class="w-full h-64 object-cover group-hover:scale-110 transition duration-500 ${isSold ? 'grayscale-[0.5]' : ''}">
+                        <div class="absolute top-4 left-4 ${isSold ? 'bg-gray-600' : 'bg-red-600'} text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">${isSold ? 'Sold' : 'Available'}</div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold uppercase italic text-white">${bike.name}</h3>
+                            <span class="text-gray-500 text-xs">${bike.brand || ''}</span>
+                        </div>
+                        <p class="text-gray-400 text-xs mt-2 line-clamp-3 mb-4" style="white-space: pre-line;">${bike.description || 'สภาพสวย พร้อมใช้งาน'}</p>
+                        <div class="flex gap-4 mb-4 text-xs text-gray-400"><span>เครื่องยนต์: ${bike.cc || '-'} CC</span></div>
+                        <p class="text-2xl font-black text-red-600 mb-4 tracking-tighter">฿${Number(bike.price).toLocaleString()}</p>
+                        <div class="space-y-2">
+                            <button onclick="openBikeDetail('${bike.id}')" class="w-full bg-gray-800 text-white text-[10px] font-bold py-2.5 rounded-lg hover:bg-gray-700 transition uppercase tracking-widest">View Details</button>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="scrollToCalc(${bike.price})" class="bg-white text-black text-[10px] font-bold py-2 rounded-lg hover:bg-gray-200 transition uppercase">คำนวณผ่อน</button>
+                                <button onclick="contactLine('${bike.name}')" class="bg-[#00B900] text-white text-[10px] font-bold py-2 rounded-lg hover:bg-[#009900] transition flex items-center justify-center gap-1 uppercase">สอบถาม LINE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function openBikeDetail(id) {
+            const { data: bike, error } = await supabaseClient.from('bikes').select('*').eq('id', id).single();
+            if (error || !bike) return;
+
+            const mainImg = document.getElementById('modal-img');
+            const thumbContainer = document.getElementById('modal-thumbnails');
+            const images = (bike.images && bike.images.length > 0) ? bike.images : [bike.image_url];
+            
+            mainImg.src = images[0];
+            thumbContainer.innerHTML = images.map((url) => `
+                <div class="aspect-square rounded-lg border border-gray-700 overflow-hidden cursor-pointer hover:border-red-600 transition group" onclick="changeModalImage('${url}')">
+                    <img src="${url}" class="w-full h-full object-cover group-hover:scale-110 transition">
+                </div>`).join('');
+
+            document.getElementById('modal-name').innerText = bike.name;
+            document.getElementById('modal-price').innerText = `฿${Number(bike.price).toLocaleString()}`;
+            document.getElementById('modal-brand').innerText = bike.brand || '-';
+            document.getElementById('modal-cc').innerText = `${bike.cc || '-'} CC`;
+            document.getElementById('modal-desc').innerText = bike.description || 'ไม่มีรายละเอียดเพิ่มเติม';
+            document.getElementById('modal-line-btn').onclick = () => contactLine(bike.name);
+
+            const statusDiv = document.getElementById('modal-status');
+            statusDiv.innerHTML = bike.is_sold 
+                ? `<span class="bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">SOLD OUT</span>`
+                : `<span class="bg-green-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase">AVAILABLE</span>`;
+
+            document.getElementById('bike-modal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function changeModalImage(url) {
+            const mainImg = document.getElementById('modal-img');
+            mainImg.style.opacity = '0';
+            setTimeout(() => { mainImg.src = url; mainImg.style.opacity = '1'; }, 150);
+        }
+
+        function closeModal() {
+            document.getElementById('bike-modal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        // --- 4. LOAN CALC & CONTACT ---
+        function calculateLoan() {
+            const price = Number(document.getElementById('c_price').value) || 0;
+            const downP = Number(document.getElementById('c_down').value) || 0;
+            const rate = Number(document.getElementById('c_rate').value) || 0;
+            const months = Number(document.getElementById('c_months').value) || 48;
+
+            const finance = price - (price * (downP / 100));
+            const interest = finance * (rate / 100) * (months / 12);
+            const monthly = (finance + interest) / months;
+
+            document.getElementById('calc-result').innerText = '฿' + Math.round(monthly).toLocaleString();
+            document.getElementById('finance-amount').innerText = '฿' + Math.round(finance).toLocaleString();
+            document.getElementById('total-interest').innerText = '฿' + Math.round(interest).toLocaleString();
+        }
+
+        function scrollToCalc(price) {
+            showPage('calc');
+            document.getElementById('c_price').value = price;
+            calculateLoan();
+            document.getElementById('page-calc').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function contactLine(bikeName) {
+            const lineID = "0910078100"; 
+            const text = `สวัสดีครับ สนใจรถรุ่น: ${bikeName}\nจากหน้าเว็บ: ${window.location.href}`;
+            window.open(`https://line.me/R/oaMessage/${lineID}/?${encodeURIComponent(text)}`, '_blank');
+        }
+
+        // --- 5. AUTHENTICATION ---
+        async function login() {
+            const emailInput = document.getElementById("email").value.trim();
+            const passwordInput = document.getElementById("password").value;
+
+            if (!emailInput || !passwordInput) { 
+                alert("กรุณากรอกข้อมูลให้ครบถ้วน"); 
+                return; 
+            }
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+                email: emailInput, 
+                password: passwordInput 
+            });
+
+            if (error) { 
+                alert("ล้มเหลว: " + error.message); 
+                return;
+            }
+
+            const { data: adminData, error: adminError } = await supabaseClient
+                .from('admin_users')
+                .select('email')
+                .eq('email', data.user.email)
+                .single();
+
+            if (adminData) {
+                alert("ยินดีต้อนรับคุณแอดมิน: " + adminData.email);
+                window.location.href = "admin.html"; 
+            } else {
+                alert("ยินดีต้อนรับคุณ " + data.user.email + " (สถานะ: ผู้ใช้งานทั่วไป)");
+                closeLogin();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchInventory();
+            calculateLoan();
+        });
+    </script>
+</body>
+</html>
